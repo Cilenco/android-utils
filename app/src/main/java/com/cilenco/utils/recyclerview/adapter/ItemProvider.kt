@@ -12,7 +12,7 @@ class ItemProvider<T:Any>(val adapter: LiveAdapter<T,*>, private val items: List
 
     fun startObserving() {
         if(items is ObservableList) items.addOnListChangedCallback(callback)
-        publishResults(null, performFiltering(null)) // Publish all items
+        if(items.isNotEmpty()) publishResults(null, performFiltering(null))
     }
 
     fun endObserving() {
