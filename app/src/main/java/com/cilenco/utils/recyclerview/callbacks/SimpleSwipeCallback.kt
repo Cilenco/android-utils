@@ -9,14 +9,16 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.cilenco.utils.recyclerview.adapter.LiveAdapter
+import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter.OnItemDragListener
+import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter.OnItemSwipedListener
 import com.cilenco.utils.recyclerview.utils.SwipeDirections
 
 class SimpleSwipeCallback<V:Any>(private val adapter: LiveAdapter<V,*>): ItemTouchHelper.SimpleCallback(0, 0), SwipeAdapter<V> {
     override var swipeDirections = SwipeDirections.NONE
     override var dragDirections = SwipeDirections.NONE
 
-    override var onSwipeCallback = { _:Int, _: V, _: Int -> }
-    override var onDragCallback = { _:Int, _: Int, _: Boolean -> true }
+    override var onSwipeCallback: OnItemSwipedListener<V>? = null
+    override var onDragCallback: OnItemDragListener? = null
 
     override var swipeColorLeft = Color.TRANSPARENT
     override var swipeColorRight = Color.TRANSPARENT
@@ -49,7 +51,7 @@ class SimpleSwipeCallback<V:Any>(private val adapter: LiveAdapter<V,*>): ItemTou
 
         if (position != RecyclerView.NO_POSITION) {
             val item = adapter.getItem(position)
-            onSwipeCallback(position, item, direction)
+            onSwipeCallback?.onItemSwiped(viewHolder.itemView, item, position, direction)
         }
     }
 
@@ -63,14 +65,14 @@ class SimpleSwipeCallback<V:Any>(private val adapter: LiveAdapter<V,*>): ItemTou
         val oldPosition = viewHolder.adapterPosition
         val newPosition = viewHolder.adapterPosition
 
-        return onDragCallback(oldPosition, newPosition, false)
+        return onDragCallback?.onItemDragged(oldPosition, newPosition, false) ?: false
     }
 
     override fun clearView(recyclerView: RecyclerView, viewHolder: ViewHolder) {
         super.clearView(recyclerView, viewHolder)
 
         if (dragFrom != RecyclerView.NO_POSITION && dragTo != RecyclerView.NO_POSITION) {
-            onDragCallback(dragFrom, dragTo, true)
+            onDragCallback?.onItemDragged(dragFrom, dragTo, true)
         }
 
         dragFrom = RecyclerView.NO_POSITION // reset the dragFrom positions

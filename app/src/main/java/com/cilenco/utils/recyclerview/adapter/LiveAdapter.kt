@@ -1,9 +1,7 @@
 package com.cilenco.utils.recyclerview.adapter
 
-import android.graphics.drawable.Drawable
 import android.view.View
 
-import androidx.databinding.ObservableList
 import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.Adapter
 import androidx.recyclerview.widget.SortedList
@@ -13,63 +11,40 @@ import androidx.recyclerview.widget.RecyclerView.NO_POSITION
 import com.cilenco.utils.recyclerview.callbacks.SimpleSwipeCallback
 import com.cilenco.utils.recyclerview.callbacks.SortedListCallback
 import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter
+import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter.OnItemDragListener
+import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter.OnItemSwipedListener
 import com.cilenco.utils.recyclerview.utils.SortOrder
-import java.util.*
 
 abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private val items: List<V>): Adapter<VH>(), SwipeAdapter<V> {
     fun interface OnItemClickedListener<V> { fun onItemClicked(itemView: View, item: V, position: Int) }
     fun interface OnItemLongPressedListener<V> { fun onItemLongPressed(itemView: View, item: V, position: Int): Boolean }
 
-    protected val itemProvider = ItemProvider(this, items)
-    protected lateinit var visibleItems: SortedList<V>
+    private val itemProvider = ItemProvider(this, items)
 
-    protected val touchHelper by lazy { ItemTouchHelper(swipeHelper) }
-    protected val swipeHelper by lazy { SimpleSwipeCallback(this) }
-    protected val listCallback by lazy { SortedListCallback(this) }
+    private lateinit var visibleItems: SortedList<V>
+    private val listCallback = SortedListCallback(this)
 
-    protected var recyclerView: RecyclerView? = null
+    private val touchHelper by lazy { ItemTouchHelper(swipeHelper) }
+    private val swipeHelper by lazy { SimpleSwipeCallback(this) }
 
-    protected var onClickCallback: OnItemClickedListener<V>? = null
-    protected var onLongPressCallback: OnItemLongPressedListener<V>? = null
+    private var onClickCallback: OnItemClickedListener<V>? = null
+    private var onLongPressCallback: OnItemLongPressedListener<V>? = null
 
-    override var swipeDirections: (position: Int) -> Int
-        set(value) { swipeHelper.swipeDirections = value }
-        get() { return swipeHelper.swipeDirections }
+    override var onSwipeCallback = swipeHelper.onSwipeCallback
+    override var onDragCallback = swipeHelper.onDragCallback
 
-    override var dragDirections: (position: Int) -> Int
-        set(value) { swipeHelper.dragDirections = value }
-        get() { return swipeHelper.dragDirections }
+    override var swipeDirections = swipeHelper.swipeDirections
+    override var dragDirections = swipeHelper.dragDirections
 
-    override var onSwipeCallback: (position:Int, item: V, direction: Int) -> Unit
-        set(value) { swipeHelper.onSwipeCallback = value }
-        get() { return swipeHelper.onSwipeCallback }
+    override var swipeColorRight = swipeHelper.swipeColorRight
+    override var swipeColorLeft = swipeHelper.swipeColorLeft
 
-    override var onDragCallback: (oldPosition: Int, newPosition: Int, dropped: Boolean) -> Boolean
-        set(value) { swipeHelper.onDragCallback = value }
-        get() { return swipeHelper.onDragCallback }
+    override var swipeDrawableRight = swipeHelper.swipeDrawableRight
+    override var swipeDrawableLeft = swipeHelper.swipeDrawableLeft
 
-    override var swipeColorLeft: Int
-        set(value) { swipeHelper.swipeColorLeft = value }
-        get() { return swipeHelper.swipeColorLeft }
+    override var swipeMargin = swipeHelper.swipeMargin
 
-    override var swipeColorRight: Int
-        set(value) { swipeHelper.swipeColorRight = value }
-        get() { return swipeHelper.swipeColorRight }
-
-    override var swipeDrawableLeft: Drawable?
-        set(value) { swipeHelper.swipeDrawableLeft = value }
-        get() { return swipeHelper.swipeDrawableLeft }
-
-    override var swipeDrawableRight: Drawable?
-        set(value) { swipeHelper.swipeDrawableRight = value }
-        get() { return swipeHelper.swipeDrawableRight }
-
-    override var swipeMargin: Int
-        set(value) { swipeHelper.swipeMargin = value }
-        get() { return swipeHelper.swipeMargin }
-
-    var sortOrder = SortOrder.ASC
-        set(value) { field = value; reorderList() }
+    var sortOrder = SortOrder.ASC; set(value) { field = value; reorderList() }
 
     init {
         listCallback.selector = { sortOrder.value * items.indexOf(it) }
@@ -82,6 +57,14 @@ abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private va
 
     fun setOnItemLongPressed(listener: OnItemLongPressedListener<V>) {
         onLongPressCallback = listener
+    }
+
+    fun setOnItemSwipedListener(listener: OnItemSwipedListener<V>) {
+        onSwipeCallback = listener
+    }
+
+    fun setOnItemDraggedListener(listener: OnItemDragListener) {
+        onDragCallback = listener
     }
 
     fun filter(predicate: (V) -> Boolean) {
@@ -112,10 +95,6 @@ abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private va
         visibleItems.endBatchedUpdates()
     }
 
-    /*override fun getItemId(position: Int): Long {
-        return visibleItems[position].hashCode().toLong()
-    }*/
-
     internal fun setVisibleItems(items: Collection<V>) {
         if(!::visibleItems.isInitialized) {
             if(items.isEmpty()) return // Not able to instantiate visibleItems yet
@@ -143,14 +122,11 @@ abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private va
     }
 
     override fun onAttachedToRecyclerView(rv: RecyclerView) {
-        recyclerView = rv // Indicate attached to RecyclerView
-
+        touchHelper.attachToRecyclerView(rv)
         itemProvider.startObserving()
-        touchHelper.attachToRecyclerView(recyclerView)
     }
 
     override fun onDetachedFromRecyclerView(rv: RecyclerView) {
-        recyclerView = null // Indicate detached from RecyclerView
         itemProvider.endObserving()
     }
 
