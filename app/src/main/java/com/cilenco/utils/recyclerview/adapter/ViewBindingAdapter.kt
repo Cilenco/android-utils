@@ -12,7 +12,7 @@ import androidx.viewbinding.ViewBinding
 typealias Inflater<VB> = (inflater: LayoutInflater, parent: ViewGroup, attach: Boolean) -> VB
 typealias Binder<VB, V> = (binding: VB, item: V) -> Unit
 
-class ViewBindingAdapter<V: Any, VB: ViewBinding>
+open class ViewBindingAdapter<V: Any, VB: ViewBinding>
     (items: List<V>, private val creator: Inflater<VB>, private val binder: Binder<VB, V>)
     : LiveAdapter<V, ViewBindingAdapter<V, VB>.ViewBindingHolder>(items) {
 
