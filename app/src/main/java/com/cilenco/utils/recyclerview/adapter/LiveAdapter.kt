@@ -14,13 +14,14 @@ import com.cilenco.utils.recyclerview.callbacks.SimpleSwipeCallback
 import com.cilenco.utils.recyclerview.callbacks.SortedListCallback
 import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter
 import com.cilenco.utils.recyclerview.utils.SortOrder
+import java.util.*
 
 abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private val items: List<V>): Adapter<VH>(), SwipeAdapter<V> {
     fun interface OnItemClickedListener<V> { fun onItemClicked(itemView: View, item: V, position: Int) }
     fun interface OnItemLongPressedListener<V> { fun onItemLongPressed(itemView: View, item: V, position: Int): Boolean }
 
-    protected val itemProvider by lazy { ItemProvider(this, items) }
-    protected val visibleItems by lazy { SortedList(items[0].javaClass, listCallback) }
+    protected val itemProvider = ItemProvider(this, items)
+    protected lateinit var visibleItems: SortedList<V>
 
     protected val touchHelper by lazy { ItemTouchHelper(swipeHelper) }
     protected val swipeHelper by lazy { SimpleSwipeCallback(this) }
@@ -101,6 +102,8 @@ abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private va
     }
 
     private fun reorderList() {
+        if(!::visibleItems.isInitialized) return
+
         visibleItems.beginBatchedUpdates()
 
         val copy = (visibleItems.size() - 1 downTo 0).map { visibleItems.removeItemAt(it) }
@@ -109,11 +112,16 @@ abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private va
         visibleItems.endBatchedUpdates()
     }
 
-    override fun getItemId(position: Int): Long {
+    /*override fun getItemId(position: Int): Long {
         return visibleItems[position].hashCode().toLong()
-    }
+    }*/
 
     internal fun setVisibleItems(items: Collection<V>) {
+        if(!::visibleItems.isInitialized) {
+            if(items.isEmpty()) return // Not able to instantiate visibleItems yet
+            else visibleItems = SortedList(items.first().javaClass, listCallback)
+        }
+
         visibleItems.beginBatchedUpdates()
 
         for (i in visibleItems.size() - 1 downTo 0) {
@@ -131,7 +139,7 @@ abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private va
     }
 
     override fun getItemCount(): Int {
-        return visibleItems.size()
+        return if(::visibleItems.isInitialized) visibleItems.size() else 0
     }
 
     override fun onAttachedToRecyclerView(rv: RecyclerView) {
