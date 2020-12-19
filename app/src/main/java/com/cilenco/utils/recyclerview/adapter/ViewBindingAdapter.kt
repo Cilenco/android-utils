@@ -13,9 +13,8 @@ typealias Inflater<VB> = (inflater: LayoutInflater, parent: ViewGroup, attach: B
 typealias Binder<VB, V> = (binding: VB, item: V) -> Unit
 
 open class ViewBindingAdapter<V: Any, VB: ViewBinding>
-    (items: List<V>, private val creator: Inflater<VB>, private val binder: Binder<VB, V>)
-    : LiveAdapter<V, ViewBindingAdapter<V, VB>.ViewBindingHolder>(items) {
-
+    (cls: Class<V>, items: List<V>, private val creator: Inflater<VB>, private val binder: Binder<VB, V>)
+    : LiveAdapter<V, ViewBindingAdapter<V, VB>.ViewBindingHolder>(cls, items) {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewBindingHolder {
         val inflater: LayoutInflater = LayoutInflater.from(parent.context)
@@ -30,4 +29,7 @@ open class ViewBindingAdapter<V: Any, VB: ViewBinding>
         LiveAdapter<V, ViewBindingAdapter<V, VB>.ViewBindingHolder>.ItemHolder(binding.root)
 }
 
-fun <V: Any, VB: ViewBinding> RecyclerView.bindViews(items: List<V>, inflater: Inflater<VB>, binder: Binder<VB, V>) = ViewBindingAdapter(items, inflater, binder)
+inline fun <reified V: Any, VB: ViewBinding> RecyclerView.bindViews
+        (items: List<V>, noinline inflater: Inflater<VB>, noinline binder: Binder<VB, V>): ViewBindingAdapter<V, VB> {
+    return ViewBindingAdapter(V::class.java, items, inflater, binder)
+}

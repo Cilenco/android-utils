@@ -15,14 +15,14 @@ import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter.OnItemDragListener
 import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter.OnItemSwipedListener
 import com.cilenco.utils.recyclerview.utils.SortOrder
 
-abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private val items: List<V>): Adapter<VH>(), SwipeAdapter<V> {
+abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(cls: Class<V>, private val items: List<V>): Adapter<VH>(), SwipeAdapter<V> {
     fun interface OnItemClickedListener<V> { fun onItemClicked(itemView: View, item: V, position: Int) }
     fun interface OnItemLongPressedListener<V> { fun onItemLongPressed(itemView: View, item: V, position: Int): Boolean }
 
     private val itemProvider = ItemProvider(this, items)
 
-    private lateinit var visibleItems: SortedList<V>
     private val listCallback = SortedListCallback(this)
+    private val visibleItems = SortedList(cls, listCallback)
 
     private val touchHelper by lazy { ItemTouchHelper(swipeHelper) }
     private val swipeHelper by lazy { SimpleSwipeCallback(this) }
@@ -85,8 +85,6 @@ abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private va
     }
 
     private fun reorderList() {
-        if(!::visibleItems.isInitialized) return
-
         visibleItems.beginBatchedUpdates()
 
         val copy = (visibleItems.size() - 1 downTo 0).map { visibleItems.removeItemAt(it) }
@@ -96,11 +94,6 @@ abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private va
     }
 
     internal fun setVisibleItems(items: Collection<V>) {
-        if(!::visibleItems.isInitialized) {
-            if(items.isEmpty()) return // Not able to instantiate visibleItems yet
-            else visibleItems = SortedList(items.first().javaClass, listCallback)
-        }
-
         visibleItems.beginBatchedUpdates()
 
         for (i in visibleItems.size() - 1 downTo 0) {
@@ -118,7 +111,7 @@ abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(private va
     }
 
     override fun getItemCount(): Int {
-        return if(::visibleItems.isInitialized) visibleItems.size() else 0
+        return visibleItems.size()
     }
 
     override fun onAttachedToRecyclerView(rv: RecyclerView) {
