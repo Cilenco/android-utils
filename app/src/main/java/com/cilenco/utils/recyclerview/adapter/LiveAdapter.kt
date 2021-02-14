@@ -14,10 +14,13 @@ import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter
 import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter.OnItemDragListener
 import com.cilenco.utils.recyclerview.callbacks.SwipeAdapter.OnItemSwipedListener
 import com.cilenco.utils.recyclerview.utils.SortOrder
+import kotlin.reflect.KClass
 
 abstract class LiveAdapter<V: Any, VH: LiveAdapter<V, VH>.ItemHolder>(cls: Class<V>, private val items: List<V>): Adapter<VH>(), SwipeAdapter<V> {
     fun interface OnItemClickedListener<V> { fun onItemClicked(itemView: View, item: V, position: Int) }
     fun interface OnItemLongPressedListener<V> { fun onItemLongPressed(itemView: View, item: V, position: Int): Boolean }
+
+    constructor(cls: KClass<V>, items: List<V>): this(cls.java, items)
 
     private val itemProvider = ItemProvider(this, items)
 
